@@ -1,6 +1,8 @@
 # Create dynamic text
 
-It's very useful to be able to create text dynamically from values that are only known at run time. Several different methods for generating such text have been used through Python's history.
+It's very useful to be able to create text dynamically from values that are only known at run time. Reports, logging, debugging, and presenting information to users all frequently require information that won't be known ahead of time. 
+
+Several different methods for generating such text have been used through Python's history.
 
 ## Older methods
 
@@ -24,7 +26,9 @@ def greet(name):
 greet("World")
 ```
 
-You may see these patterns in older code. If you're making updates to that code it's better to stay consistent and use the same pattern. But if you're writing new code, it's generally going to be better to use newer patterns.
+You may see either of these patterns in older code. If you're making updates to code that uses these patterns, it's better to stay consistent and use the same pattern. 
+
+But if you're writing new code, it's better to use newer patterns.
 
 ## F-strings 
 
@@ -38,11 +42,11 @@ def greet(name):
 greet("World")
 ```
 
-Relative to older methods, f-strings are easier to understand because you don't have to swap back and forth between the placeholder and the value. For most dynamic text, you should use f-strings.
+Relative to older methods, f-strings are easier to understand because the values are not separated from their position in the output string. For most dynamic text, you should use f-strings.
 
 ## Formatting values with f-strings
 
-Because f-strings are often used for prettified user-facing output, raw values are often not a good choice. For example:
+Because f-strings are often used for prettified user-facing output, raw values are often not a good choice. The code below, for example, is bad:
 
 ```python
 lat = 45.9711247890
@@ -91,7 +95,9 @@ for county, population in population_data.items():
 
 ## The problem with f-strings
 
-F-strings make it hard to sanitize user input. That can lead to security vulnerabilities, like SQL injection attacks.
+While f-strings are useful, you have to be very careful when you create an f-string with user inputted values. That can lead to security vulnerabilities, like SQL injection attacks. 
+
+For example, let's say we have a database with some information that shouldn't be public. A logged in user requests information that's private to them, and we have some code to fetch that information from the database:
 
 ```python
 import sqlite3
@@ -110,17 +116,17 @@ print_secrets("' OR 1=1; -- ") #(2)!
 1. > Shows only Alice's secrets
 2. > Shows everybody's secrets
 
-This code works as expected when you pass the function a name. `#!python print_secrets("Alice")` returns only Alice's secrets because the f-string evaluates to:
+In normal situations, this code works as expected. `#!python print_secrets("Alice")` returns only Alice's secrets because the f-string evaluates to:
 
 `"SELECT secret FROM users WHERE name = 'Alice'"`
 
-`#!python print_secrets("' OR 1=1; -- ")` however returns everybody's secrets because the f-string evaluates to:
+A malicious user, however, could create a username that includes a SQL injection. `#!python print_secrets("' OR 1=1; -- ")` returns everybody's secrets because the f-string evaluates to:
 
 `"SELECT secret FROM users WHERE name = '' OR 1=1; -- '"`
 
-Since `1=1` is always true, this code will show the secrets of everybody in the database (the `--` starts a line comment to prevent the final `'` from causing a syntax error). 
+Since `1=1` is always true, this code will show the secrets of everybody in the database (`--` starts a line comment to prevent the final `'` from causing a syntax error). 
 
-SQL injections are a well-known attack vector, so there is a defined way to handle this problem. Use parameterized queries, not f-strings:
+SQL injections are a well-known attack vector, so there is a defined way to handle this problem: use parameterized queries, not f-strings:
 
 ```python
 def safe_print_secrets(name):
@@ -134,10 +140,10 @@ safe_print_secrets("Alice") #(1)!
 safe_print_secrets("' OR 1=1; -- ") #(2)!
 ```
 
-1. > Shows only Alice's secrets
+1. > Alice's secrets are still correctly shown
 2. > Shows nothing because the parameter is invalid
 
-Parameterized queries have the same problem that old-fashioned C-style format strings had. They're difficult to reason about because the values are separated from their position in the string.
+Parameterized queries have the same problem that old-fashioned string formatting had. They're difficult to reason about because the values are separated from their position in the string.
 
 ## T-strings
 
@@ -181,17 +187,17 @@ def sanitize_sql(template):
 
 2. > When you iterate over a `Template` object, you get both the static and dynamic chunks in order. The first chunk will always be a static string (though it might be empty) and so will the last chunk. There will always be exactly one more static string than dynamic Interpolation.
 
-3. > The static string parts of the `Template` were created by whoever wrote t-string and are presumed safe. 
+3. > The static string parts of the `Template` were created by whoever wrote the t-string and are presumed safe. 
 
-4. > The values from the interpolated parts came from outside the t-string and could be malicious. They may need special handling.
+4. > The values from the interpolated parts came from an external source and could be malicious. They may need special handling.
 
 5. > Instead of putting the interpolated value in the query string, we put a `?`, which is what is expected for a parameterized query in `sqlite3`.
 
 6. > The `value` property is what you get from the evaluated expression inside the curly braces of the t-string. Instead of going in the query string, it becomes one of the args that will be passed to the parameterized query string.
 
-Instead of passing the t-string directly to the `execute` method, we can use this function to get the sanitized SQL. That information can be passed to the `execute` method safely as a parameterized query. That gives us the convenience of an f-string without the risk.
+Instead of passing the t-string directly to the `execute` method, we can use this function to get the equivalent parameterized query and associated args. That information can be passed to the `execute` method safely, which gives us the convenience of an f-string without the risk.
 
-Unfortunately, there's still another problem. You have to remember to pass the string to `sanitize_sql` every single time. You can't forget even once. That kind of responsibility is better borne by library authors than people using the libraries. 
+Unfortunately, there's still another problem. You have to remember to create a t-string and pass it to `sanitize_sql` every single time. You can't forget and accidentally use an f-string even once. That kind of responsibility is better borne by library authors than by people using the libraries. 
 
 Most libraries, including `sqlite3`, are still working on adding support for t-strings. It's a hard job because in reality it's much more complex than just using the example sanitizing code above. We can, however, fake it for simple cases with an extension of the `Cursor` object.
 
@@ -216,6 +222,8 @@ patched_print_secrets("' OR 1=1; -- ") #(4)!
 
 2. > The `factory` parameter is `sqlite3`'s supported pattern for extending the `Cursor` object with custom functionality.
 
-3. > Shows only Alice's secrets.
+3. > Alice's secrets are still correctly shown.
 
 4. > Shows nothing because the parameter is invalid after sanitizing the t-string.
+
+If you try to pass anything other than a t-string to `better_execute`, the code will throw an exception. That's better than needing to remember to use a t-string.
