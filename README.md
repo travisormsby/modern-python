@@ -1,0 +1,1 @@
+Materials for MN GIS/LIS 2026 Spring Workshop
