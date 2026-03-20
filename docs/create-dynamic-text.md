@@ -9,21 +9,21 @@ Several different methods for generating such text have been used through Python
 The oldest pattern for creating dynamic text used [C-style string formatting](https://docs.python.org/3/tutorial/inputoutput.html#old-string-formatting):
 
 ```python
-def greet(name):
-    greeting = "Hello, %s!" % name
-    print(greeting)
+--8<-- "snippets/02-create-dynamic-text.py:c-style-formatting"
+```
 
-greet("World")
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:c-style-formatting"
 ```
 
 In 3.0, Python introduced the [`format` method](https://docs.python.org/3/library/stdtypes.html#str.format) on strings:
 
 ```python
-def greet(name):
-    greeting = "Hello, {}!".format(name)
-    print(greeting)
+--8<-- "snippets/02-create-dynamic-text.py:string-format-method"
+```
 
-greet("World")
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:string-format-method"
 ```
 
 You may see either of these patterns in older code. If you're making updates to code that uses these patterns, it's better to stay consistent and use the same pattern. 
@@ -35,11 +35,11 @@ But if you're writing new code, it's better to use newer patterns.
 In 3.6, Python introduced [formatted string literals](https://docs.python.org/3/reference/lexical_analysis.html#formatted-string-literals), usually called f-strings. Like the `format` method, f-strings use curly braces to identify placeholders. But they put the code to be evaluated inside those braces:
 
 ```python
-def greet(name):
-    greeting = f"Hello, {name}!"
-    print(greeting)
+--8<-- "snippets/02-create-dynamic-text.py:f-string"
+```
 
-greet("World")
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:f-string"
 ```
 
 Relative to older methods, f-strings are easier to understand because the values are not separated from their position in the output string. For most dynamic text, you should use f-strings.
@@ -49,101 +49,122 @@ Relative to older methods, f-strings are easier to understand because the values
 Because f-strings are often used for prettified user-facing output, raw values are often not a good choice. The code below, for example, is bad:
 
 ```python
-lat = 45.9711247890
-lon = -91.44125437908
-print(f"Your location is ({lat}, {lon})")
+--8<-- "snippets/02-create-dynamic-text.py:bad-formatting"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:bad-formatting"
 ```
 
 You could use the `round` function, but that implies you care about the rounded value. You probably don't. You probably just need to represent the true value in a more user-friendly way. The appropriate way to do this is to use Python's [format specification language](https://docs.python.org/3/library/string.html#format-specification-mini-language).
 
 ```python
-lat = 45.9711247890
-lon = -91.44125437908
-print(f"Your location is ({lat:.2f}, {lon:.2f})") # (1)!
+--8<-- "snippets/02-create-dynamic-text.py:precision-formatting"
 ```
 
 1. > `.2f` means to represent the number with 2 digits to the right of the decimal point in fixed point form.
 
-The distinction between "here is a value" and "here is a representation of a value" is subtle, but meaningful. It's the difference between what the value _is_ and what the value _looks like_. 
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:precision-formatting"
+```
+
+The distinction between "here is a value" and "here is a representation of a value" is subtle, but meaningful. It's the difference between what the value _is_ and what the value _looks like_. Like how a feature class is different from the way a layer is styled in a map. 
 
 Thousands separators are another common use case for format specification:
 
 ```python
-grid = "15N"
-easting = 491993.112
-northing = 4977445.948
-print(f"Your location is {grid} {easting:,.0f}m E  {northing:,.0f}m N") # (1)!
+--8<-- "snippets/02-create-dynamic-text.py:separator-formatting"
 ```
 
 1. > `,.0f` means to represent the number with a thousands separator, 0 digits to the right of the decimal point in fixed point form.
 
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:separator-formatting"
+```
+
 The third most common use case for format specification is aligning text to a specific width, which is useful for making text line up.
 
 ```python
-population_data = {
-    "Hennepin": 1293582,
-    "Ramsey": 549097,
-    "Traverse": 3052,
-    "Lake of the Woods": 3783
-}
-
-for county, population in population_data.items():
-    print(f"{county:.<18}{population:.>10,}") #(1)!
+--8<-- "snippets/02-create-dynamic-text.py:width-formatting"
 ```
 
 1. > `.<18` means to align the text to the left of a cell at least 18 characters wide, padding any empty spaces with a `.` character. `.>10,` has a similar meaning, but aligned right to a cell at least 10 characters wide, using a thousands separator.
+
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:width-formatting"
+```
+
 
 ## The problem with f-strings
 
 While f-strings are useful, you have to be very careful when you create an f-string with user inputted values. That can lead to security vulnerabilities, like SQL injection attacks. 
 
-For example, let's say we have a database with some information that shouldn't be public. A logged in user requests information that's private to them, and we have some code to fetch that information from the database:
+For example, let's say we have a database with some information that shouldn't be public. A logged in user requests information that's private to them, and we have some code to fetch that information from the database.
 
 ```python
-import sqlite3
-
-def print_secrets(name):
-    with sqlite3.connect("data/test.db") as conn:
-        cur = conn.cursor()
-        cur.execute(f"SELECT secret FROM users WHERE name = '{name}'")
-        for row in cur.fetchall():
-            print(*row)
-
-print_secrets("Alice") #(1)!
-print_secrets("' OR 1=1; -- ") #(2)!
+--8<-- "snippets/02-create-dynamic-text.py:sql-injection-def"
 ```
 
-1. > Shows only Alice's secrets
-2. > Shows everybody's secrets
+In normal situations, this code works as expected:
 
-In normal situations, this code works as expected. `#!python print_secrets("Alice")` returns only Alice's secrets because the f-string evaluates to:
+```python
+--8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-safe"
+```
 
-`"SELECT secret FROM users WHERE name = 'Alice'"`
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:sql-injection-call-safe"
+```
 
-A malicious user, however, could create a username that includes a SQL injection. `#!python print_secrets("' OR 1=1; -- ")` returns everybody's secrets because the f-string evaluates to:
+This shows only Alice's secrets because the f-string evaluates to:
 
-`"SELECT secret FROM users WHERE name = '' OR 1=1; -- '"`
+```sql
+"SELECT secret FROM users WHERE name = 'Alice'"
+```
 
-Since `1=1` is always true, this code will show the secrets of everybody in the database (`--` starts a line comment to prevent the final `'` from causing a syntax error). 
+A malicious user, however, could create a username that includes a SQL injection:
+
+```python
+--8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-unsafe"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:sql-injection-call-unsafe"
+```
+
+This returns everybody's secrets because the f-string evaluates to:
+
+```sql
+"SELECT secret FROM users WHERE name = '' OR 1=1; -- '"
+```
+
+Since `#!sql 1=1` is always true, this code will show the secrets of everybody in the database (`#!sql --` starts a line comment to prevent the final `#!sql '` from causing a syntax error). 
 
 SQL injections are a well-known attack vector, so there is a defined way to handle this problem: use parameterized queries, not f-strings:
 
 ```python
-def safe_print_secrets(name):
-    with sqlite3.connect("data/test.db") as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT secret FROM users WHERE name = ?", (name,))
-        for row in cur.fetchall():
-            print(*row)
-
-safe_print_secrets("Alice") #(1)!
-safe_print_secrets("' OR 1=1; -- ") #(2)!
+--8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-def"
 ```
 
-1. > Alice's secrets are still correctly shown
-2. > Shows nothing because the parameter is invalid
+Calling with a normal input returns a normal value:
+```python
+--8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-safe"
+```
 
-Parameterized queries have the same problem that old-fashioned string formatting had. They're difficult to reason about because the values are separated from their position in the string.
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-safe"
+```
+
+SQL injection fails to return anything with parameterized queries:
+```python
+--8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-unsafe"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-unsafe"
+```
+
+Unfortunately, parameterized queries have the same problem that old-fashioned string formatting had. They're difficult to reason about because the values are separated from their position in the string.
 
 ## T-strings
 
@@ -151,36 +172,21 @@ To help get the convenience of f-strings with the safety of parameterized querie
 
 But t-strings are not actually strings. The object that gets created is a `Template` and it looks nothing like a `str`.
 
-```python
-def greet(name):
-    greeting = t"Hello, {name}!" 
-    print(greeting)
 
-greet("World")
+```python
+--8<-- "snippets/02-create-dynamic-text.py:t-string"
 ```
 
-Unlike f-strings, t-strings separate the static part from the dynamic part. When you pass a t-string to a function, it's possible for the function to know which parts might be dangerous and do something about them.
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:t-string"
+```
+
+Unlike f-strings, t-strings separate the static parts (the strings) from the dynamic parts (the interpolations). When you pass a t-string to a function, it's possible for the function to know which parts might be malicious and do something about them.
 
 For example, we can create a function that transforms a t-string into a parameterized query:
 
 ```python
-from string.templatelib import Interpolation, Template
-
-
-def sanitize_sql(template):
-    if not isinstance(template, Template):
-        raise TypeError("Must be a template string") #(1)!
-    parts = []
-    args = []
-    for item in template: #(2)!
-        if isinstance(item, str): #(3)!
-            parts.append(item)
-        elif isinstance(item, Interpolation): #(4)!
-            parts.append("?") #(5)!
-            args.append(item.value) #(6)!
-
-    query = "".join(parts)
-    return query, tuple(args)
+--8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-def"
 ```
 
 1. > This function fails on any input that isn't a `Template` to keep people from accidentally passing it a potentially-unsafe f-string. 
@@ -197,33 +203,58 @@ def sanitize_sql(template):
 
 Instead of passing the t-string directly to the `execute` method, we can use this function to get the equivalent parameterized query and associated args. That information can be passed to the `execute` method safely, which gives us the convenience of an f-string without the risk.
 
-Unfortunately, there's still another problem. You have to remember to create a t-string and pass it to `sanitize_sql` every single time. You can't forget and accidentally use an f-string even once. That kind of responsibility is better borne by library authors than by people using the libraries. 
+```python
+--8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-call"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:t-string-to-parameterized-query-call"
+```
+
+And if people try to use an unsafe f-string, the function will fail:
+
+```python
+--8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-call-f-string"
+```
+
+```python title="output"
+--8<-- "output/02-create-dynamic-text.txt:t-string-to-parameterized-query-call-f-string"
+```
+
+## The problem with t-strings
+
+Unfortunately, there's still another problem. You have to remember to use `sanitize_sql` every single time. You can't forget and accidentally use an f-string even once. That kind of responsibility is better borne by library authors than by people using the libraries. 
 
 Most libraries, including `sqlite3`, are still working on adding support for t-strings. It's a hard job because in reality it's much more complex than just using the example sanitizing code above. We can, however, fake it for simple cases with an extension of the `Cursor` object.
 
 ```python
-class TStringCursor(sqlite3.Cursor): #(1)!
-    def better_execute(self, template):
-        return self.execute(*sanitize_sql(template))
-
-
-def patched_print_secrets(name):
-    with sqlite3.connect("data/test.db") as conn:
-        cur = conn.cursor(factory=TStringCursor) #(2)!
-        cur.better_execute(t"SELECT secret FROM users WHERE name = {name}")
-        for row in cur.fetchall():
-            print(*row)
-
-patched_print_secrets("Alice") #(3)!
-patched_print_secrets("' OR 1=1; -- ") #(4)!
+--8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-def"
 ```
 
 1. > A new class that has everything the original `sqlite3.Cursor` object has, plus a `better_execute` method that only lets you execute sanitized t-strings as parameterized queries.
 
 2. > The `factory` parameter is `sqlite3`'s supported pattern for extending the `Cursor` object with custom functionality.
 
-3. > Alice's secrets are still correctly shown.
+3. > 
 
 4. > Shows nothing because the parameter is invalid after sanitizing the t-string.
 
-If you try to pass anything other than a t-string to `better_execute`, the code will throw an exception. That's better than needing to remember to use a t-string.
+Normal queries work correctly:
+```python
+--8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-call-safe"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:t-string-for-library-call-safe"
+```
+
+And SQL injections are automatically blocked:
+```python
+--8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-call-unsafe"
+```
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:t-string-for-library-call-unsafe"
+```
+
+Because `better_execute` is using the `sanitize_sql` function under the hood, if you try to pass anything other than a t-string, the code will throw an exception. That's better than needing to remember to use a t-string.

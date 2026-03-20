@@ -1,0 +1,104 @@
+# --8<-- [start:c-style-formatting]
+
+Hello, World!
+# --8<-- [end:c-style-formatting]
+
+# --8<-- [start:string-format-method]
+
+Hello, World!
+# --8<-- [end:string-format-method]
+
+# --8<-- [start:f-string]
+
+Hello, World!
+# --8<-- [end:f-string]
+
+# --8<-- [start:bad-formatting]
+
+Your location is (45.971124789, -91.44125437908)
+# --8<-- [end:bad-formatting]
+
+# --8<-- [start:precision-formatting]
+
+Your location is (45.97, -91.44)
+# --8<-- [end:precision-formatting]
+
+# --8<-- [start:separator-formatting]
+
+Your location is 15N 491,993m E  4,977,446m N
+# --8<-- [end:separator-formatting]
+
+# --8<-- [start:width-formatting]
+
+Hennepin...........1,293,582
+Ramsey...............549,097
+Traverse...............3,052
+Lake of the Woods......3,783
+# --8<-- [end:width-formatting]
+
+# --8<-- [start:sql-injection-def]
+
+# --8<-- [end:sql-injection-def]
+
+# --8<-- [start:sql-injection-call-safe]
+
+Alice secret info
+# --8<-- [end:sql-injection-call-safe]
+
+# --8<-- [start:sql-injection-call-unsafe]
+
+Alice secret info
+Bob secret info
+Carol secret info
+# --8<-- [end:sql-injection-call-unsafe]
+
+# --8<-- [start:parameterized-queries-def]
+
+# --8<-- [end:parameterized-queries-def]
+
+# --8<-- [start:parameterized-queries-call-safe]
+
+Alice secret info
+# --8<-- [end:parameterized-queries-call-safe]
+
+# --8<-- [start:parameterized-queries-call-unsafe]
+
+No records returned
+# --8<-- [end:parameterized-queries-call-unsafe]
+
+# --8<-- [start:t-string]
+
+Template(strings=('Hello, ', '!'), interpolations=(Interpolation('World', 'name', None, ''),))
+# --8<-- [end:t-string]
+
+# --8<-- [start:t-string-to-parameterized-query-def]
+
+# --8<-- [end:t-string-to-parameterized-query-def]
+
+# --8<-- [start:t-string-to-parameterized-query-call]
+
+('SELECT secret FROM users WHERE name = ?', ("' OR 1=1; -- ",))
+# --8<-- [end:t-string-to-parameterized-query-call]
+
+# --8<-- [start:t-string-to-parameterized-query-call-f-string]
+
+Traceback (most recent call last):
+  File "<string>", line 144, in sanitize_sql
+TypeError: Must be a template string
+
+# --8<-- [end:t-string-to-parameterized-query-call-f-string]
+
+# --8<-- [start:t-string-for-library-def]
+
+# --8<-- [end:t-string-for-library-def]
+
+# --8<-- [start:t-string-for-library-call-safe]
+
+Alice secret info
+# --8<-- [end:t-string-for-library-call-safe]
+
+# --8<-- [start:t-string-for-library-call-unsafe]
+
+No records returned
+# --8<-- [end:t-string-for-library-call-unsafe]
+
