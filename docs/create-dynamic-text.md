@@ -32,7 +32,7 @@ But if you're writing new code, it's better to use newer patterns.
 
 ## F-strings 
 
-In 3.6, Python introduced [formatted string literals](https://docs.python.org/3/reference/lexical_analysis.html#formatted-string-literals), usually called f-strings. Like the `format` method, f-strings use curly braces to identify placeholders. But they put the code to be evaluated inside those braces:
+In 3.6, Python introduced [formatted string literals](https://docs.python.org/3/reference/lexical_analysis.html#formatted-string-literals), usually called f-strings. Like the `format` method, f-strings use curly braces to identify placeholders. But they put the expression to be evaluated inside those braces:
 
 ```python
 --8<-- "snippets/02-create-dynamic-text.py:f-string"
@@ -42,7 +42,7 @@ In 3.6, Python introduced [formatted string literals](https://docs.python.org/3/
 --8<-- "output/02-create-dynamic-text.txt:f-string"
 ```
 
-Relative to older methods, f-strings are easier to understand because the values are not separated from their position in the output string. For most dynamic text, you should use f-strings.
+Relative to older methods, f-strings are easier to understand because the expressions are not separated from their position in the output string. For most dynamic text, you should use f-strings.
 
 ## Formatting values with f-strings
 
@@ -109,11 +109,11 @@ For example, let's say we have a database with some information that shouldn't b
 In normal situations, this code works as expected:
 
 ```python
---8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-safe"
+--8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-normal"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:sql-injection-call-safe"
+--8<-- "output/02-create-dynamic-text.txt:sql-injection-call-normal"
 ```
 
 This shows only Alice's secrets because the f-string evaluates to:
@@ -125,11 +125,11 @@ This shows only Alice's secrets because the f-string evaluates to:
 A malicious user, however, could create a username that includes a SQL injection:
 
 ```python
---8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-unsafe"
+--8<-- "snippets/02-create-dynamic-text.py:sql-injection-call-malicious"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:sql-injection-call-unsafe"
+--8<-- "output/02-create-dynamic-text.txt:sql-injection-call-malicious"
 ```
 
 This returns everybody's secrets because the f-string evaluates to:
@@ -148,20 +148,20 @@ SQL injections are a well-known attack vector, so there is a defined way to hand
 
 Calling with a normal input returns a normal value:
 ```python
---8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-safe"
+--8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-normal"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-safe"
+--8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-normal"
 ```
 
 SQL injection fails to return anything with parameterized queries:
 ```python
---8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-unsafe"
+--8<-- "snippets/02-create-dynamic-text.py:parameterized-queries-call-malicious"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-unsafe"
+--8<-- "output/02-create-dynamic-text.txt:parameterized-queries-call-malicious"
 ```
 
 Unfortunately, parameterized queries have the same problem that old-fashioned string formatting had. They're difficult to reason about because the values are separated from their position in the string.
@@ -183,78 +183,35 @@ But t-strings are not actually strings. The object that gets created is a `Templ
 
 Unlike f-strings, t-strings separate the static parts (the strings) from the dynamic parts (the interpolations). When you pass a t-string to a function, it's possible for the function to know which parts might be malicious and do something about them.
 
-For example, we can create a function that transforms a t-string into a parameterized query:
-
-```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-def"
-```
-
-1. > This function fails on any input that isn't a `Template` to keep people from accidentally passing it a potentially-unsafe f-string. 
-
-2. > When you iterate over a `Template` object, you get both the static and dynamic chunks in order. The first chunk will always be a static string (though it might be empty) and so will the last chunk. There will always be exactly one more static string than dynamic Interpolation.
-
-3. > The static string parts of the `Template` were created by whoever wrote the t-string and are presumed safe. 
-
-4. > The values from the interpolated parts came from an external source and could be malicious. They may need special handling.
-
-5. > Instead of putting the interpolated value in the query string, we put a `?`, which is what is expected for a parameterized query in `sqlite3`.
-
-6. > The `value` property is what you get from the evaluated expression inside the curly braces of the t-string. Instead of going in the query string, it becomes one of the args that will be passed to the parameterized query string.
-
-Instead of passing the t-string directly to the `execute` method, we can use this function to get the equivalent parameterized query and associated args. That information can be passed to the `execute` method safely, which gives us the convenience of an f-string without the risk.
-
-```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-call"
-```
-
-```text title="output"
---8<-- "output/02-create-dynamic-text.txt:t-string-to-parameterized-query-call"
-```
-
-And if people try to use an unsafe f-string, the function will fail:
-
-```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-to-parameterized-query-call-f-string"
-```
-
-```python title="output"
---8<-- "output/02-create-dynamic-text.txt:t-string-to-parameterized-query-call-f-string"
-```
 
 ## The problem with t-strings
 
-Unfortunately, there's still another problem. You have to remember to use `sanitize_sql` every single time. You can't forget and accidentally use an f-string even once. That kind of responsibility is better borne by library authors than by people using the libraries. 
+Sadly, t-strings are not magic. Just because they _make it possible_ to do something about the malicious part of a dynamic string doesn't mean they _actually do it_. 
 
-Most libraries, including `sqlite3`, are still working on adding support for t-strings. It's a hard job because in reality it's much more complex than just using the example sanitizing code above. We can, however, fake it for simple cases with an extension of the `Cursor` object.
+Somebody has to write what's called a tag function to process the t-string safely. It's not easy, and it's the kind of responsibility that is better borne by library authors than by people using the libraries. 
+
+Many libraries are still working on adding support for t-strings. SQLAlchemy 2.1 has already done that work, so we get the flexibility of f-strings without the SQL injection risk.
 
 ```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-def"
+--8<-- "snippets/02-create-dynamic-text.py:t-string-in-library-def"
 ```
-
-1. > A new class that has everything the original `sqlite3.Cursor` object has, plus a `better_execute` method that only lets you execute sanitized t-strings as parameterized queries.
-
-2. > The `factory` parameter is `sqlite3`'s supported pattern for extending the `Cursor` object with custom functionality.
-
-3. > 
-
-4. > Shows nothing because the parameter is invalid after sanitizing the t-string.
 
 Normal queries work correctly:
 ```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-call-safe"
+--8<-- "snippets/02-create-dynamic-text.py:t-string-in-library-call-normal"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:t-string-for-library-call-safe"
+--8<-- "output/02-create-dynamic-text.txt:t-string-in-library-call-normal"
 ```
 
 And SQL injections are automatically blocked:
 ```python
---8<-- "snippets/02-create-dynamic-text.py:t-string-for-library-call-unsafe"
+--8<-- "snippets/02-create-dynamic-text.py:t-string-in-library-call-malicious"
 ```
 
 ```text title="output"
---8<-- "output/02-create-dynamic-text.txt:t-string-for-library-call-unsafe"
+--8<-- "output/02-create-dynamic-text.txt:t-string-in-library-call-malicious"
 ```
 
-Because `better_execute` is using the `sanitize_sql` function under the hood, if you try to pass anything other than a t-string, the code will throw an exception. That's better than needing to remember to use a t-string.
+When library authors have finished the work of incorporating t-strings into their code, everybody will get the advantage of safety for free. That work is being completed unevenly, so you want to check for t-string compatibility with the libraries you use.
