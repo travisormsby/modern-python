@@ -11,3 +11,6 @@ wheels/
 
 # Built site
 site/
+# pixi environments
+.pixi/*
+!.pixi/config.toml

@@ -1,3 +1,5 @@
+#!/usr/bin/env
+
 # --8<-- [start:c-style-formatting]
 name = "World"
 greeting = "Hello, %s!" % name
