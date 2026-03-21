@@ -209,7 +209,7 @@ Many libraries are still working on adding support for t-strings. SQLAlchemy 2.1
 --8<-- "snippets/02-create-dynamic-text.py:t-string-in-library-def"
 ```
 
-1. > Other than swapping out a `text` object for a `tstring`, the code is identical to the unsafe code that used f-strings. The library authors wrote the appropriate tag functions, so as users we get the advantages with very little extra work.
+1. > Other than this line swapping out a `text` object for a `tstring`, the code is identical to the unsafe code that used f-strings.
 
 Normal queries work correctly:
 ```python
