@@ -107,6 +107,23 @@ greeting = t"Hello, {name}!"
 print(greeting)
 # --8<-- [end:t-string]
 
+# --8<-- [start:tag-function]
+from string.templatelib import Interpolation
+
+
+def print_tstring(tstring):
+    output_str = ""
+    for item in tstring:
+        if isinstance(item, str):  # (1)!
+            output_str += item
+        elif isinstance(item, Interpolation):  # (2)!
+            output_str += item.value
+    print(output_str)
+
+
+print_tstring(greeting)
+# --8<-- [end:tag-function]
+
 
 # --8<-- [start:t-string-in-library-def]
 from sqlalchemy import tstring
@@ -115,7 +132,7 @@ from sqlalchemy import tstring
 def print_secrets(name, database=DATABASE_URL):
     engine = create_engine(database)
     with engine.connect() as conn:
-        stmt = tstring(t"SELECT secret FROM users WHERE name = {name}")
+        stmt = tstring(t"SELECT secret FROM users WHERE name = {name}")  # (1)!
         rows = conn.execute(stmt).fetchall()
         if rows:
             for row in rows:

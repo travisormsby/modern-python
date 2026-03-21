@@ -71,6 +71,11 @@ No records returned
 Template(strings=('Hello, ', '!'), interpolations=(Interpolation('World', 'name', None, ''),))
 # --8<-- [end:t-string]
 
+# --8<-- [start:tag-function]
+
+Hello, World!
+# --8<-- [end:tag-function]
+
 # --8<-- [start:t-string-in-library-def]
 
 # --8<-- [end:t-string-in-library-def]

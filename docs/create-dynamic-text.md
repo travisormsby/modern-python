@@ -98,9 +98,9 @@ The third most common use case for format specification is aligning text to a sp
 
 ## The problem with f-strings
 
-While f-strings are useful, you have to be very careful when you create an f-string with user inputted values. That can lead to security vulnerabilities, like SQL injection attacks. 
+While f-strings are useful, you have to be very careful when you create an f-string with user-provided values. That can lead to security vulnerabilities, like SQL injection attacks. 
 
-For example, let's say we have a database with some information that shouldn't be public. A logged in user requests information that's private to them, and we have some code to fetch that information from the database.
+For example, let's say we have a database with some information that shouldn't be public. A logged-in user requests information that's private to them, and we have some code to fetch that information from the database.
 
 ```python
 --8<-- "snippets/02-create-dynamic-text.py:sql-injection-def"
@@ -170,7 +170,7 @@ Unfortunately, parameterized queries have the same problem that old-fashioned st
 
 To help get the convenience of f-strings with the safety of parameterized queries, in 3.14 Python introduced [template string literals](https://docs.python.org/3/library/string.templatelib.html), also known as t-strings. Other than using a `t` prefix instead of an `f`, the syntax for creating t-strings is identical to f-strings.
 
-But t-strings are not actually strings. The object that gets created is a `Template` and it looks nothing like a `str`.
+But despite their name, t-strings are not actually strings. The object that gets created is a `Template` and it looks nothing like a `str`.
 
 
 ```python
@@ -186,15 +186,30 @@ Unlike f-strings, t-strings separate the static parts (the strings) from the dyn
 
 ## The problem with t-strings
 
-Sadly, t-strings are not magic. Just because they _make it possible_ to do something about the malicious part of a dynamic string doesn't mean they _actually do it_. 
+Sadly, t-strings are not magic. Just because they _make it possible_ to do something about the potentially malicious part of a dynamic string doesn't mean they _actually do it_. 
 
-Somebody has to write what's called a tag function to process the t-string safely. It's not easy, and it's the kind of responsibility that is better borne by library authors than by people using the libraries. 
+Somebody has to write what's called a tag function to process the t-string safely. It's not easy. Even just to print out a trivial `hello world` example is several lines of code:
 
-Many libraries are still working on adding support for t-strings. SQLAlchemy 2.1 has already done that work, so we get the flexibility of f-strings without the SQL injection risk.
+```python
+--8<-- "snippets/02-create-dynamic-text.py:tag-function"
+```
+
+1. > One block of code to handle to static parts of the t-string, which should be safe
+1. > A separate block of code to handle to dynamic parts of the t-string, which could be malicious.
+
+```text title="output"
+--8<-- "output/02-create-dynamic-text.txt:tag-function"
+```
+
+Tag functions are not the sort of thing typical users would write. This is the kind of responsibility that is better borne by library authors than by people using the libraries.
+
+Many libraries are still working on adding support for t-strings. SQLAlchemy 2.1 has already done that work, so we get the flexibility of f-strings without the SQL injection risk when we use that library:
 
 ```python
 --8<-- "snippets/02-create-dynamic-text.py:t-string-in-library-def"
 ```
+
+1. > Other than swapping out a `text` object for a `tstring`, the code is identical to the unsafe code that used f-strings. The library authors wrote the appropriate tag functions, so as users we get the advantages with very little extra work.
 
 Normal queries work correctly:
 ```python
