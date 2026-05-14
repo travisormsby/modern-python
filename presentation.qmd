@@ -1,0 +1,478 @@
+---
+title: "This ain't your grandma's Python"
+author: "Travis Ormsby"
+format: 
+    revealjs:
+        incremental: false
+        include-in-header:
+        - text: |
+            <style>
+            .reveal div.sourceCode {
+                margin-top: 0.5em !important;
+                margin-bottom: 0.5em !important;
+            }
+            </style>
+jupyter: python3
+---
+
+# 1 - Managing environments
+
+## Problem
+
+You wrote a script for other people.
+
+It uses `tomllib`, introduced in Python 3.11.
+
+It uses `GeoPandas`, which is not included in the default ArcGIS Pro Python environment.
+
+How do you make sure they can run it?
+
+## requirements.txt is bad
+
+- `pip` is slow
+- Easy to accidentally corrupt system Python
+- Easy to forget to update it
+- Non-determinative
+- Useless for specifying a Python version
+- Useless for non-Python dependencies
+
+## environment.yml is bad
+
+- `conda` makes `pip` look fast.
+- Environments are buried in esoteric locations
+- It usually fails if using ArcGIS Pro's `conda`
+
+## `uv` is better
+
+:::: {.columns}
+
+::: {.column}
+
+### Pros
+
+- Fast
+- Simpler to use
+- lock file guarantees environment duplication
+- Can include dependencies in the script (PEP 723)
+
+:::
+::: {.column}
+
+### Cons
+
+- Useless for non-Python dependencies
+- Ecosystem risk from OpenAI acquisition 
+
+:::
+
+::::
+
+## `pixi` is even better for geospatial
+
+:::: {.columns}
+
+::: {.column}
+
+### Pros
+
+- Can handle non-Python dependencies
+- As fast as `uv` for Python dependencies
+- Faster than `conda` for non-Python dependencies
+
+:::
+
+::: {.column}
+
+### Cons
+
+- Not as easy to use as `uv`
+- Can't use PEP 723 script metadata
+
+:::
+
+::::
+
+## Exercise 1: Use `uv` and `pixi` to manage environments
+
+- pyproject.toml ensures environment is always documented
+- Lock file ensures versions are always pinned
+- Storing environments with projects improves discoverability
+- Caching packages improves efficiency
+
+# 2 - Creating dynamic text
+
+## Problem
+
+Your code needs to make a string like: 
+
+`"A Canada lynx was sighted at 48.8° N, 93.2° W"`
+
+You have these variables whose values aren't known until runtime:
+
+- `species`
+- `lat`
+- `lon`
+
+How do you do it?
+
+## C-style formatting is bad
+
+::: {.incremental}
+```{python}
+#| echo: true
+#| output-location: fragment
+species = "Canada lynx"
+lat = 48.8
+lon = 93.2
+
+output = "A %s was sighted at %d° N, %d° W" % (species, lat, lon)
+print(output)
+```
+
+```{python}
+species = "Canada lynx"
+lat = 48.8
+lon = 93.2
+
+output = "A %s was sighted at %d° N, %d° W" % (species, lat, lon)
+print(output)
+```
+
+- Arcane syntax
+- Values separated from place in string
+:::
+
+## String `format` method is bad
+
+::: {.incremental}
+```{python}
+# | echo: true
+# | output-location: fragment
+output = "A {} was sighted at {}° N, {}° W".format(species, lat, lon)
+print(output)
+```
+
+- Values still separated from place in string
+:::
+
+## f-strings are better
+
+::: {.incremental}
+```{python}
+# | echo: true
+# | output-location: fragment
+output = f"A {species} was sighted at {lat}° N, {lon}° W"
+print(output)
+```
+
+- Values are in the right location in the string
+- Well-named variables make the string readable
+:::
+
+## f-strings have a security problem
+
+This code retrieves some information given a user name
+
+```{python}
+# | echo: true
+from sqlalchemy import create_engine, text
+
+
+def print_secrets(name):
+    engine = create_engine("sqlite:///data/example.db")
+    with engine.connect() as conn:
+        stmt = text(f"SELECT secret FROM users WHERE name = '{name}'")
+        rows = conn.execute(stmt).fetchall()
+        if rows:
+            for row in rows:
+                print(*row)
+        else:
+            print("No records returned")
+```
+
+## f-strings have a security problem
+
+```{python}
+# | echo: true
+# | output-location: fragment
+normal_name = "Alice"
+print_secrets(normal_name)
+```
+
+```{python}
+# | echo: true
+# | output-location: fragment
+malicious_name = "' OR 1=1; -- "
+print_secrets(malicious_name)
+```
+
+## t-strings are better for security
+
+```{python}
+# | echo: true
+# | code-line-numbers: "1,2,8,9"
+# from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, tstring
+
+
+def print_secrets(name):
+    engine = create_engine("sqlite:///data/example.db")
+    with engine.connect() as conn:
+        # stmt = text(f"SELECT secret FROM users WHERE name = '{name}'")
+        stmt = tstring(t"SELECT secret FROM users WHERE name = {name}")
+        rows = conn.execute(stmt).fetchall()
+        if rows:
+            for row in rows:
+                print(*row)
+        else:
+            print("No records returned")
+```
+
+## t-strings are better for security
+
+```{python}
+# | echo: true
+# | output-location: fragment
+print_secrets(normal_name)
+```
+
+
+```{python}
+# | echo: true
+# | output-location: fragment
+print_secrets(malicious_name)
+```
+
+## t-strings are worse for most dynamic strings
+```{python}
+# | echo: true
+# | output-location: fragment
+output = t"A {species} was sighted at {lat}° N, {lon}° W"
+print(output)
+```
+
+## Exercise 2: Use f-strings and t-strings to create dynamic text
+
+- You can use any expression, not just variable names
+- Formatting values uses its own a mini-language
+- Don't mix and match strategies for creating dynamic text
+- t-strings are useless without a tag function
+
+
+# 3 - Manipulating filepaths
+
+## Problem
+
+You have a web service that gets data from a set of partitioned GeoParquet files
+
+The service URL should be based on the filepath needed for that query. For example:
+
+- Filepath: `/data/country=Bangladesh/year=1997/buildings.parquet`
+- URL: `https://api.example.com/buildings?country=Bangladesh&year=1997`
+
+How do you get the right URL given a filepath?
+
+## String methods are bad
+
+::: {.incremental}
+```{python}
+# | echo: true
+# | output-location: fragment
+from urllib.parse import urlencode
+
+filepath = "/data/country=Bangladesh/year=1997/buildings.parquet"
+parts = filepath.split("/")
+file_name = parts[-1]
+file_stem = file_name.replace(".parquet", "")
+params = dict(p.split("=") for p in parts if "=" in p)
+query_string = urlencode(params)
+url = f"https://api.example.com/{file_stem}?{query_string}"
+print(url)
+```
+
+- A path is not a string - its structure carries meaning
+- Why is `split` used on line 4? 
+- Why is list indexing used on line 5?
+- Why is `replace` used on line 6?
+- Why is split used again on line 7?
+
+:::
+
+## `os.path` is only a little better
+
+
+::: {.incremental}
+```{python}
+# | echo: true
+# | output-location: fragment
+# | code-line-numbers: "1,5,7"
+import os
+from urllib.parse import urlencode
+
+filepath = "/data/country=Bangladesh/year=1997/buildings.parquet"
+parts = os.path.normpath(filepath).split(os.sep)
+file_name = parts[-1]
+file_stem = os.path.splitext(file_name)[0]
+params = dict(p.split("=") for p in parts if "=" in p)
+query_string = urlencode(params)
+url = f"https://api.example.com/{file_stem}?{query_string}"
+print(url)
+```
+
+- Still fundamentally treats paths as strings, need comments to explain
+- `normpath` and `os.sep` have slightly better semantics
+:::
+
+## `pathlib` is much better
+
+::: {.incremental}
+```{python}
+# | echo: true
+# | output-location: fragment
+# | code-line-numbers: "1,4,5,7"
+from pathlib import Path
+from urllib.parse import urlencode
+
+filepath = Path("/data/country=Bangladesh/year=1997/buildings.parquet")
+params = dict(p.split("=") for p in filepath.parts if "=" in p)
+query_string = urlencode(params)
+url = f"https://api.example.com/{filepath.stem}?{query_string}"
+print(url)
+```
+
+- Treats paths as `Path` objects, not ordinary strings
+- Better names provide clear semantic meaning
+  - `filepath.parts` instead of `filepath.split("/")`
+  - `filepath.stem` instead of `parts[-1].replace(".parquet", "")`
+
+:::
+
+## Exercise 3: Use `pathlib` to manipulate filepaths
+
+- Good names make code more self-documenting
+- Separates abstract path manipulation from touching the filesystem
+- Convenient syntactic sugar for common tasks
+
+# 4 - Structure data
+
+## Problem
+
+You have an API for updating parcel values
+
+The API expects a particular format:
+
+```{python}
+# | echo: true
+correct = {"propertyId": "0123456789", "value": 251482.17}
+```
+
+You also have submissions like:
+
+```{python}
+# | echo: true
+missing_field = {"value": 251482.17}
+wrong_types = {"propertyId": 1234567890, "value": "324398.71"}
+uncoercable = {
+    "propertyId": ["0123456789", "1234567890"],
+    "value": [251482.17, 324398.71],
+}
+```
+
+- Ensure the submission has the right keys and value types
+- Reject the submission only when impossible to parse
+
+## Manual validation is bad
+
+::: {.incremental}
+``` {python}
+# | echo: true
+# | output-location: fragment
+for submission in (correct, missing_field, wrong_types, uncoercable):
+    try:
+        if type(submission["propertyId"]) in (str, int, float, bytes):
+            property_id = str(submission["propertyId"])
+        else:
+            raise ValueError
+        value = float(submission["value"])
+        valid_submission = {"propertyID": property_id, "value": value}
+        print(valid_submission)
+    except KeyError:
+        print("Missing required field")
+    except ValueError:
+        print("Improper data type")
+```
+
+
+- The definition of a valid submission is buried
+- Writing the type checking is painful
+
+:::
+
+## Dataclasses are only a bit better
+
+::: incremental
+``` {python}
+# | echo: true
+# | output-location: fragment
+from dataclasses import dataclass
+
+
+@dataclass
+class ValidSubmission:
+    propertyId: str
+    value: float
+
+
+for submission in (correct, missing_field, wrong_types, uncoercable):
+    try:
+        print(ValidSubmission(**submission))
+    except TypeError:
+        print("Error: Missing required field")
+    except ValueError:
+        print("Error: Improper data type")
+```
+
+- Good that the valid submission definition is centered
+- Types are defined, but not actually checked at runtime
+
+:::
+
+## Pydantic (v2) models are best
+
+::: incremental
+``` {python}
+# | echo: true
+# | output-location: fragment
+from pydantic import BaseModel, ConfigDict, ValidationError
+
+
+class ValidSubmission(BaseModel):
+    propertyId: str
+    value: float
+    model_config = ConfigDict(coerce_numbers_to_str=True)
+
+
+for submission in (correct, missing_field, wrong_types, uncoercable):
+    try:
+        print(ValidSubmission(**submission))
+    except ValidationError as e:
+        for error in e.errors():
+            print(f"Error: {error['msg']}")
+```
+- Type enforcement (strictly so, sometimes annoyingly)
+- Free error messages
+
+:::
+
+## Exercise 4: Enforce a data contract with Pydantic models
+
+- Good representation of a single table row
+- Strict type checking
+- Convenient dot notation
+- Easy serialization to other formats
+
+
+# 5 - Bonus: Python internals
+
+- Speed improvements in 3.11
+- Optionally free-threaded (no GIL) Python in 3.13+

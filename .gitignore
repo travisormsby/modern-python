@@ -1,0 +1,19 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# VS Code
+settings.json
+
+# Virtual environments
+.venv
+
+# Built site
+site/
+# pixi environments
+.pixi/*
+!.pixi/config.toml

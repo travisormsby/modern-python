@@ -1,0 +1,119 @@
+#!/usr/bin/env
+
+# --8<-- [start:os-path-join]
+
+/home/user/scripts/test.py
+# --8<-- [end:os-path-join]
+
+# --8<-- [start:os-path-split]
+
+/home/user/scripts/test.txt
+# --8<-- [end:os-path-split]
+
+# --8<-- [start:pathlib]
+
+/home/user/scripts/test.py
+# --8<-- [end:pathlib]
+
+# --8<-- [start:path-type]
+
+<class 'pathlib.PosixPath'>
+# --8<-- [end:path-type]
+
+# --8<-- [start:keys]
+
+{PosixPath('/home/user/scripts/test.py'): 'This is the full path'}
+# --8<-- [end:keys]
+
+# --8<-- [start:parts]
+
+('/', 'home', 'user', 'scripts', 'test.py')
+# --8<-- [end:parts]
+
+# --8<-- [start:parent]
+
+/home/user/scripts
+# --8<-- [end:parent]
+
+# --8<-- [start:name]
+
+test.py
+test
+.py
+/home/user/scripts/test.txt
+# --8<-- [end:name]
+
+# --8<-- [start:absolute]
+
+/home/travis/repos/gis_lis/modern-python/docs/03-manipulate-filepaths.md
+# --8<-- [end:absolute]
+
+# --8<-- [start:exists]
+
+True
+True
+False
+# --8<-- [end:exists]
+
+# --8<-- [start:iterdir]
+
+03-manipulate-filepaths.md
+05-upgrade-python.md
+01-manage-environments.md
+samples.md
+04-structure-data.md
+02-create-dynamic-text.md
+index.md
+# --8<-- [end:iterdir]
+
+# --8<-- [start:glob]
+
+03-manipulate-filepaths.md
+05-upgrade-python.md
+01-manage-environments.md
+04-structure-data.md
+02-create-dynamic-text.md
+# --8<-- [end:glob]
+
+# --8<-- [start:path-input]
+
+    name             secret
+0  Alice  Alice secret info
+1    Bob    Bob secret info
+2  Carol  Carol secret info
+# --8<-- [end:path-input]
+
+# --8<-- [start:path-input-fail]
+
+Traceback (most recent call last):
+  File "<string>", line 128, in print_json
+  File "/home/travis/repos/gis_lis/modern-python/.pixi/envs/dev/lib/python3.14/json/__init__.py", line 235, in dumps
+    return _default_encoder.encode(obj)
+           ~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+  File "/home/travis/repos/gis_lis/modern-python/.pixi/envs/dev/lib/python3.14/json/encoder.py", line 202, in encode
+    chunks = self.iterencode(o, _one_shot=True)
+  File "/home/travis/repos/gis_lis/modern-python/.pixi/envs/dev/lib/python3.14/json/encoder.py", line 263, in iterencode
+    return _iterencode(o, 0)
+  File "/home/travis/repos/gis_lis/modern-python/.pixi/envs/dev/lib/python3.14/json/encoder.py", line 182, in default
+    raise TypeError(f'Object of type {o.__class__.__name__} '
+                    f'is not JSON serializable')
+TypeError: Object of type PosixPath is not JSON serializable
+when serializing dict item 'file'
+
+# --8<-- [end:path-input-fail]
+
+# --8<-- [start:str-input]
+
+{"file": "data/example.db"}
+# --8<-- [end:str-input]
+
+# --8<-- [start:open]
+
+This is some example text
+# --8<-- [end:open]
+
+# --8<-- [start:write-read]
+
+Some new text to overwrite the old
+# --8<-- [end:write-read]
+
